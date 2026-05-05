@@ -9,11 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
-<!-- Google Identity Services + GAPI -->
-
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-
-<script src="https://apis.google.com/js/api.js" async defer></script>
+<!-- Google scripts are lazy-loaded when user taps Connect Drive -->
 
 <style>
   :root {
@@ -914,6 +910,18 @@
    LOGOTECA - Live, Drive-synced logo library
    ========================================================= */
 
+// Global error trap — surface errors in footer instead of silently breaking
+window.addEventListener('error', (e) => {
+  const s = document.getElementById('status');
+  if (s) s.textContent = 'JS Error: ' + (e.message || 'unknown') + ' (line ' + e.lineno + ')';
+  console.error('Caught error:', e.error || e.message);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  const s = document.getElementById('status');
+  if (s) s.textContent = 'Promise error: ' + (e.reason?.message || e.reason || 'unknown');
+  console.error('Unhandled rejection:', e.reason);
+});
+
 // ---- Config ----
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 const FOLDER_NAME = 'Logoteca';
@@ -1162,58 +1170,123 @@ async function processImage(srcUrlOrDataUrl, config) {
   return await new Promise((res, rej) => canvas.toBlob(b => b ? res({ blob: b, ext, mime }) : rej(), mime, 0.95));
 }
 
-// ---- Google Drive integration ----
+// ---- Google Drive integration (lazy-loaded) ----
 let gapiLoaded = false;
 let gisLoaded = false;
+let googleScriptsLoading = false;
 
-window.gapiLoadCheck = () => {
-  if (typeof gapi !== 'undefined') {
-    gapi.load('client', async () => {
-      await gapi.client.init({ discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
-      gapiLoaded = true;
-      maybeReady();
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    // Check if already loaded
+    if (document.querySelector(`script[src="${src}"]`)) {
+      resolve();
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('Failed to load ' + src));
+    document.head.appendChild(s);
+  });
+}
+
+async function loadGoogleScripts() {
+  if (gapiLoaded && gisLoaded) return;
+  if (googleScriptsLoading) {
+    // Wait for existing load
+    while (!gapiLoaded || !gisLoaded) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    return;
+  }
+  googleScriptsLoading = true;
+  setStatus('Loading Google libraries…');
+  try {
+    // Load both in parallel
+    await Promise.all([
+      loadScript('https://accounts.google.com/gsi/client'),
+      loadScript('https://apis.google.com/js/api.js'),
+    ]);
+
+    // Wait for gapi global
+    let attempts = 0;
+    while (typeof gapi === 'undefined' && attempts < 50) {
+      await new Promise(r => setTimeout(r, 100));
+      attempts++;
+    }
+    if (typeof gapi === 'undefined') throw new Error('gapi never loaded');
+
+    // Init gapi client
+    await new Promise((resolve, reject) => {
+      gapi.load('client', {
+        callback: async () => {
+          try {
+            await gapi.client.init({ discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
+            gapiLoaded = true;
+            resolve();
+          } catch (e) { reject(e); }
+        },
+        onerror: reject,
+      });
     });
-  } else {
-    setTimeout(window.gapiLoadCheck, 200);
-  }
-};
-window.gisLoadCheck = () => {
-  if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
+
+    // Wait for google.accounts.oauth2
+    attempts = 0;
+    while ((typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) && attempts < 50) {
+      await new Promise(r => setTimeout(r, 100));
+      attempts++;
+    }
+    if (typeof google === 'undefined' || !google.accounts) throw new Error('GIS never loaded');
     gisLoaded = true;
-    maybeReady();
-  } else {
-    setTimeout(window.gisLoadCheck, 200);
-  }
-};
-function maybeReady() {
-  if (gapiLoaded && gisLoaded && state.driveMode && state.clientId) {
+
+    // Init token client
     state.tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: state.clientId,
       scope: SCOPES,
       callback: async (resp) => {
         if (resp.error) {
           toast('Auth failed: ' + resp.error);
+          setStatus('Auth failed.');
           return;
         }
         state.accessToken = resp.access_token;
         gapi.client.setToken({ access_token: resp.access_token });
         state.driveAuthed = true;
         updateAuthUI();
+        setStatus('Connecting to Drive folder…');
         await ensureFolder();
         await loadIndexFromDrive();
         renderLibrary();
         toast('Connected to Drive');
+        setStatus('Connected.');
       },
     });
+    setStatus('Google libraries ready.');
+  } catch (err) {
+    console.error('Failed to load Google scripts:', err);
+    toast('Could not load Google libraries — check connection');
+    setStatus('Google library load failed.');
+    googleScriptsLoading = false;
+    throw err;
   }
+  googleScriptsLoading = false;
 }
 
 async function connectDrive() {
-  if (!state.tokenClient) {
-    toast('Drive client not ready yet…');
+  if (!state.driveMode || !state.clientId) {
+    toast('Set up Client ID first');
     return;
   }
-  state.tokenClient.requestAccessToken({ prompt: state.driveAuthed ? '' : 'consent' });
+  try {
+    await loadGoogleScripts();
+    if (!state.tokenClient) {
+      toast('Drive client not ready');
+      return;
+    }
+    state.tokenClient.requestAccessToken({ prompt: state.driveAuthed ? '' : 'consent' });
+  } catch (err) {
+    // Already toasted in loadGoogleScripts
+  }
 }
 
 function disconnectDrive() {
@@ -2044,13 +2117,14 @@ $('#resetClientId').onclick = () => {
 
 // ---- Init ----
 function initApp() {
-  updateAuthUI();
-  renderLookup();
-  $('#libraryCount').textContent = state.library.length;
-  setStatus(state.library.length > 0 ? `Library: ${state.library.length}.` : 'Ready.');
-  if (state.driveMode && state.clientId) {
-    window.gapiLoadCheck();
-    window.gisLoadCheck();
+  try {
+    updateAuthUI();
+    renderLookup();
+    $('#libraryCount').textContent = state.library.length;
+    setStatus(state.library.length > 0 ? `Library: ${state.library.length}. Tap Connect to sync.` : 'Ready. Tap Connect Google Drive to sync.');
+  } catch (err) {
+    console.error('Init error:', err);
+    setStatus('Init error: ' + err.message);
   }
 }
 </script>
