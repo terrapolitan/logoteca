@@ -1,0 +1,2059 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Logoteca — Live Logo Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<!-- Google Identity Services + GAPI -->
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<script src="https://apis.google.com/js/api.js" async defer></script>
+
+<style>
+  :root {
+    --ink: #0e0e0c;
+    --paper: #f4f0e6;
+    --paper-2: #ebe5d4;
+    --rule: #1a1a17;
+    --accent: #d64513;
+    --accent-2: #1d4a2c;
+    --muted: #6b6760;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Fraunces', Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background-image: radial-gradient(rgba(14,14,12,0.04) 1px, transparent 1px);
+    background-size: 4px 4px;
+    min-height: 100vh;
+  }
+
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* Setup screen */
+  .setup-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+  }
+  .setup-card {
+    max-width: 640px;
+    width: 100%;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    box-shadow: 6px 6px 0 var(--rule);
+  }
+  .setup-card .head {
+    border-bottom: 3px double var(--rule);
+    padding: 32px;
+    text-align: center;
+  }
+  .setup-card h1 {
+    margin: 0;
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-size: 56px;
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+    font-variation-settings: "opsz" 144;
+  }
+  .setup-card h1 em { font-style: italic; font-weight: 400; color: var(--accent); }
+  .setup-card .body { padding: 32px; }
+  .setup-card h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin: 0 0 16px;
+  }
+  .setup-card ol { padding-left: 20px; line-height: 1.7; }
+  .setup-card ol li { margin-bottom: 12px; }
+  .setup-card code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--paper-2);
+    padding: 2px 6px;
+    border: 1px solid var(--rule);
+  }
+  .setup-card .field {
+    display: flex;
+    margin-top: 24px;
+    border: 1px solid var(--rule);
+    box-shadow: 3px 3px 0 var(--rule);
+  }
+  .setup-card .field input {
+    flex: 1;
+    border: 0;
+    outline: 0;
+    padding: 12px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--paper);
+  }
+  .setup-card .field button {
+    border: 0;
+    border-left: 1px solid var(--rule);
+    background: var(--ink);
+    color: var(--paper);
+    padding: 0 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    cursor: pointer;
+  }
+  .setup-card .skip {
+    margin-top: 16px;
+    text-align: center;
+  }
+  .setup-card .skip a {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  .setup-card .err {
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    margin-top: 12px;
+  }
+
+  /* Masthead */
+  header.masthead {
+    border-bottom: 3px double var(--rule);
+    padding: 24px 32px 18px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: end;
+    gap: 24px;
+  }
+  .masthead .left, .masthead .right {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .masthead .right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .masthead .left b, .masthead .right b { color: var(--ink); }
+  .masthead h1 {
+    margin: 0;
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-size: clamp(40px, 6vw, 72px);
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+    text-align: center;
+    font-variation-settings: "opsz" 144;
+  }
+  .masthead h1 em { font-style: italic; font-weight: 400; color: var(--accent); }
+  .masthead .tag {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-style: italic;
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 6px;
+  }
+
+  /* Auth pill */
+  .auth-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--rule);
+    padding: 6px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: var(--paper);
+    cursor: pointer;
+  }
+  .auth-pill .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+  .auth-pill.connected .dot { background: var(--accent-2); }
+  .auth-pill.connected { background: var(--paper-2); }
+  .auth-pill:hover { background: var(--ink); color: var(--paper); }
+  .auth-pill:hover .dot { background: var(--paper); }
+
+  /* Search bar */
+  .console {
+    border-bottom: 1px solid var(--rule);
+    padding: 18px 32px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    background: var(--paper-2);
+    flex-wrap: wrap;
+  }
+  .field {
+    flex: 1 1 320px;
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    box-shadow: 3px 3px 0 var(--rule);
+  }
+  .field .prefix {
+    padding: 0 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-right: 1px solid var(--rule);
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+  }
+  .field input {
+    flex: 1;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    padding: 14px 14px;
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    color: var(--ink);
+  }
+
+  button.btn {
+    border: 1px solid var(--rule);
+    background: var(--ink);
+    color: var(--paper);
+    padding: 12px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 var(--rule);
+    transition: transform .08s ease, box-shadow .08s ease;
+  }
+  button.btn:hover { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--rule); }
+  button.btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--rule); }
+  button.btn.ghost { background: var(--paper); color: var(--ink); }
+  button.btn.accent { background: var(--accent); color: var(--paper); }
+  button.btn.green { background: var(--accent-2); color: var(--paper); }
+  button.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* Tabs */
+  nav.tabs {
+    display: flex;
+    border-bottom: 1px solid var(--rule);
+    padding: 0 32px;
+    background: var(--paper);
+    overflow-x: auto;
+  }
+  nav.tabs button {
+    background: transparent;
+    border: 0;
+    border-right: 1px solid var(--rule);
+    padding: 14px 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    color: var(--muted);
+    position: relative;
+    white-space: nowrap;
+  }
+  nav.tabs button:first-child { border-left: 1px solid var(--rule); }
+  nav.tabs button.active { color: var(--ink); background: var(--paper-2); }
+  nav.tabs button.active::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 3px;
+    background: var(--accent);
+  }
+  nav.tabs .count {
+    display: inline-block;
+    margin-left: 8px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 2px 6px;
+    font-size: 9px;
+    border-radius: 999px;
+  }
+
+  main { padding: 32px; min-height: 50vh; }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 80px 20px;
+    border: 2px dashed var(--rule);
+    background: var(--paper-2);
+  }
+  .empty h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-style: italic;
+    font-size: 28px;
+    margin: 0 0 8px;
+  }
+  .empty p { color: var(--muted); margin: 0; }
+  .empty .examples {
+    margin-top: 24px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .empty .examples button {
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    padding: 6px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .empty .examples button:hover { background: var(--ink); color: var(--paper); }
+
+  /* Grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+  }
+
+  .card {
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 3px 3px 0 var(--rule);
+    overflow: hidden;
+    position: relative;
+  }
+  .card .canvas {
+    aspect-ratio: 1.3 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+      linear-gradient(45deg, var(--paper-2) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--paper-2) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--paper-2) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--paper-2) 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    border-bottom: 1px solid var(--rule);
+    padding: 24px;
+    position: relative;
+  }
+  .card .canvas img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  .card .canvas .failed {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    text-align: center;
+  }
+  .card .meta {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .card .meta .name {
+    font-weight: 600;
+    font-size: 18px;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+  .card .meta .domain {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  .card .meta .source {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent-2);
+    margin-top: 2px;
+  }
+  .card .meta .drive-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin-top: 2px;
+  }
+  .card .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border-top: 1px solid var(--rule);
+  }
+  .card .actions button {
+    background: transparent;
+    border: 0;
+    border-right: 1px solid var(--rule);
+    padding: 10px 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .card .actions button:last-child { border-right: 0; }
+  .card .actions button:hover { background: var(--ink); color: var(--paper); }
+  .card .actions button.saved { background: var(--accent-2); color: var(--paper); }
+
+  .card .selectbox {
+    position: absolute;
+    top: 8px; left: 8px;
+    width: 22px; height: 22px;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    z-index: 2;
+  }
+  .card.selected .selectbox { background: var(--accent); color: var(--paper); }
+  .card.selected { outline: 3px solid var(--accent); outline-offset: -1px; }
+
+  .card .src-picker {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .card .src-picker button {
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    padding: 3px 7px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+  }
+  .card .src-picker button.active { background: var(--ink); color: var(--paper); }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    padding: 12px 32px;
+    background: var(--ink);
+    color: var(--paper);
+    border-bottom: 1px solid var(--rule);
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .toolbar .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    flex: 1;
+  }
+  .toolbar button.btn { background: var(--paper); color: var(--ink); box-shadow: none; }
+  .toolbar button.btn:hover { background: var(--accent); color: var(--paper); }
+
+  /* Export modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(14,14,12,0.5);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 20px;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    box-shadow: 6px 6px 0 var(--rule);
+    max-width: 520px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: auto;
+  }
+  .modal .head {
+    border-bottom: 3px double var(--rule);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal .head h2 {
+    margin: 0;
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-style: italic;
+    font-size: 24px;
+  }
+  .modal .head button {
+    border: 0;
+    background: transparent;
+    font-size: 20px;
+    cursor: pointer;
+  }
+  .modal .body { padding: 24px; }
+  .modal .row {
+    margin-bottom: 20px;
+  }
+  .modal .row label {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .modal .opts {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .modal .opts button {
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+  }
+  .modal .opts button.active { background: var(--ink); color: var(--paper); }
+  .modal .opts input[type="text"], .modal .opts input[type="number"] {
+    border: 1px solid var(--rule);
+    padding: 8px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--paper);
+    width: 100px;
+  }
+  .modal .preview {
+    border: 1px solid var(--rule);
+    background:
+      linear-gradient(45deg, var(--paper-2) 25%, transparent 25%),
+      linear-gradient(-45deg, var(--paper-2) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--paper-2) 75%),
+      linear-gradient(-45deg, transparent 75%, var(--paper-2) 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    padding: 24px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .modal .preview img { max-width: 100%; max-height: 240px; }
+  .modal .footer {
+    border-top: 1px solid var(--rule);
+    padding: 16px 24px;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    background: var(--paper-2);
+  }
+  .modal .color-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .modal .color-input input[type="color"] {
+    width: 40px;
+    height: 36px;
+    border: 1px solid var(--rule);
+    cursor: pointer;
+  }
+
+  /* Upload zone */
+  .upzone {
+    border: 2px dashed var(--rule);
+    background: var(--paper-2);
+    padding: 40px;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .upzone.drag { background: var(--ink); color: var(--paper); }
+  .upzone h3 {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    margin: 0 0 8px;
+    font-size: 22px;
+  }
+  .upzone input[type="file"] { display: none; }
+  .upzone label {
+    display: inline-block;
+    margin-top: 12px;
+    border: 1px solid currentColor;
+    padding: 10px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+  }
+
+  /* Footer */
+  footer {
+    border-top: 3px double var(--rule);
+    padding: 24px 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: var(--paper);
+    padding: 12px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    box-shadow: 4px 4px 0 var(--accent);
+    z-index: 300;
+    opacity: 0;
+    transition: opacity .2s, transform .2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, -8px); }
+
+  /* Sync indicator */
+  .syncing {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1s infinite;
+    margin-right: 6px;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  @media (max-width: 640px) {
+    header.masthead { grid-template-columns: 1fr; padding: 20px; }
+    .masthead .left, .masthead .right { text-align: center; align-items: center; }
+    .console, nav.tabs, main, footer, .toolbar { padding-left: 16px; padding-right: 16px; }
+  }
+</style>
+
+</head>
+<body>
+
+<!-- =================== SETUP SCREEN =================== -->
+
+<div id="setupScreen" class="setup-screen">
+  <div class="setup-card">
+    <div class="head">
+      <h1>Logo<em>teca</em></h1>
+      <p style="font-style:italic; color:var(--muted); margin: 12px 0 0;">A live logo library, synced to your Drive.</p>
+    </div>
+    <div class="body">
+      <h3>One-time setup</h3>
+      <ol>
+        <li>Go to the <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a> and create a new project (or pick an existing one).</li>
+        <li>Enable the <b>Google Drive API</b> (APIs &amp; Services → Library → search "Drive").</li>
+        <li>Configure the <b>OAuth consent screen</b> as "External", add your Google account as a test user.</li>
+        <li>Go to <b>Credentials → Create OAuth Client ID</b>. Type: <b>Web application</b>.</li>
+        <li>Under <b>Authorized JavaScript origins</b>, add the URL where this page lives (e.g. <code>https://yourname.github.io</code>).</li>
+        <li>Copy the <b>Client ID</b> and paste it below. It saves locally — never sent anywhere.</li>
+      </ol>
+      <div class="field">
+        <input id="clientIdInput" type="text" placeholder="123456-abc...apps.googleusercontent.com" />
+        <button id="saveClientId">Save</button>
+      </div>
+      <div id="setupErr" class="err" style="display:none;"></div>
+      <div class="skip">
+        <a id="skipSetup">Skip Drive setup — use local-only mode</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =================== APP =================== -->
+
+<div id="app" style="display:none;">
+
+  <header class="masthead">
+    <div class="left">EST. 2026 · <b>VOL. I</b> · NO. 002</div>
+    <h1>Logo<em>teca</em></h1>
+    <div class="right">
+      <span><b>LIVE LIBRARY</b> · DRIVE-SYNCED</span>
+      <button id="authPill" class="auth-pill">
+        <span class="dot"></span>
+        <span id="authLabel">Connect Google Drive</span>
+      </button>
+    </div>
+    <p class="tag">— Sourced from the open commons. Synced to your Drive. Yours forever. —</p>
+  </header>
+
+  <section class="console">
+    <div class="field">
+      <span class="prefix">Add</span>
+      <input id="searchInput" type="text" placeholder="Type a company or domain (e.g. Petronas, polestar.com)…" />
+    </div>
+    <button class="btn accent" id="searchBtn">Source &amp; Save</button>
+    <button class="btn ghost" id="clearBtn">Clear Lookups</button>
+  </section>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="lookup">Lookup <span class="count" id="resultCount">0</span></button>
+    <button class="tab" data-tab="library">Library <span class="count" id="libraryCount">0</span></button>
+    <button class="tab" data-tab="upload">Upload</button>
+    <button class="tab" data-tab="bulk">Bulk Source</button>
+    <button class="tab" data-tab="settings">Settings</button>
+  </nav>
+
+  <div id="toolbar" class="toolbar" style="display:none;">
+    <span class="label" id="toolbarLabel">0 selected</span>
+    <button class="btn" id="bulkSave">Save to Library</button>
+    <button class="btn" id="bulkExport">Export…</button>
+    <button class="btn" id="bulkExportSheet">Export CSV</button>
+    <button class="btn" id="bulkDeselect">Deselect</button>
+  </div>
+
+  <main>
+    <section id="tab-lookup" class="tab-panel">
+      <div id="lookupEmpty" class="empty">
+        <h2>What logo are we sourcing today?</h2>
+        <p>Type a company name or domain. Saves go straight to your Drive folder.</p>
+        <div class="examples">
+          <button data-q="petronas.com">petronas.com</button>
+          <button data-q="polestar.com">polestar.com</button>
+          <button data-q="anthropic.com">anthropic.com</button>
+          <button data-q="exxonmobil.com">exxonmobil.com</button>
+          <button data-q="google.com">google.com</button>
+        </div>
+      </div>
+      <div id="lookupGrid" class="grid"></div>
+    </section>
+
+```
+<section id="tab-library" class="tab-panel" style="display:none;">
+  <div id="libraryEmpty" class="empty">
+    <h2>Library's empty — for now.</h2>
+    <p>Save logos from Lookup or Upload tabs. Connected to Drive? They'll appear here from any device.</p>
+  </div>
+  <div id="libraryGrid" class="grid"></div>
+</section>
+
+<section id="tab-upload" class="tab-panel" style="display:none;">
+  <div class="upzone" id="upzone">
+    <h3>Drop your own logo files here</h3>
+    <p style="color:var(--muted); margin:0;">PNG, SVG, JPG, WebP — auto-saved to your Library and Drive.</p>
+    <input type="file" id="uploadInput" multiple accept="image/*" />
+    <label for="uploadInput">Choose Files</label>
+  </div>
+  <div id="uploadGrid" class="grid"></div>
+</section>
+
+<section id="tab-bulk" class="tab-panel" style="display:none;">
+  <div style="border:1px solid var(--rule); background:var(--paper); padding:20px; box-shadow:3px 3px 0 var(--rule); margin-bottom:20px;">
+    <h3 style="margin:0 0 8px; font-family:'Fraunces'; font-style:italic; font-weight:400;">Bulk source — one company per line</h3>
+    <p style="margin:0 0 12px; color:var(--muted); font-size:14px;">Paste a list (names or domains). All sourced in parallel and saved to Drive.</p>
+    <textarea id="bulkInput" rows="8" style="width:100%; font-family:'JetBrains Mono', monospace; font-size:13px; padding:12px; border:1px solid var(--rule); background:var(--paper-2); resize:vertical;" placeholder="petronas.com&#10;shell.com&#10;exxonmobil.com&#10;Equinor&#10;TotalEnergies"></textarea>
+    <div style="display:flex; gap:8px; margin-top:12px;">
+      <button class="btn green" id="bulkFetch">Fetch &amp; Save All</button>
+      <button class="btn ghost" id="bulkSample">Load Sample (Energy Majors)</button>
+    </div>
+  </div>
+  <div id="bulkGrid" class="grid"></div>
+</section>
+
+<section id="tab-settings" class="tab-panel" style="display:none;">
+  <div style="max-width:600px;">
+    <div style="border:1px solid var(--rule); background:var(--paper); padding:24px; box-shadow:3px 3px 0 var(--rule); margin-bottom:20px;">
+      <h3 style="font-family:'JetBrains Mono'; font-size:11px; text-transform:uppercase; letter-spacing:0.14em; color:var(--accent); margin:0 0 16px;">Drive Sync</h3>
+      <p id="driveStatus" style="margin:0 0 16px; font-size:14px;"></p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn" id="reconnectDrive">Reconnect</button>
+        <button class="btn ghost" id="openDriveFolder">Open Drive Folder</button>
+        <button class="btn ghost" id="resyncDrive">Re-sync from Drive</button>
+      </div>
+    </div>
+
+    <div style="border:1px solid var(--rule); background:var(--paper); padding:24px; box-shadow:3px 3px 0 var(--rule); margin-bottom:20px;">
+      <h3 style="font-family:'JetBrains Mono'; font-size:11px; text-transform:uppercase; letter-spacing:0.14em; color:var(--accent); margin:0 0 16px;">Default Export Settings</h3>
+      <p style="margin:0 0 16px; font-size:14px; color:var(--muted);">These apply when you click Download on a card. The full export modal is always available via the "Export…" button.</p>
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-family:'JetBrains Mono'; font-size:10px; text-transform:uppercase; letter-spacing:0.14em; color:var(--muted); margin-bottom:8px;">Default Size</label>
+        <div class="opts" id="defaultSizeOpts" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-family:'JetBrains Mono'; font-size:10px; text-transform:uppercase; letter-spacing:0.14em; color:var(--muted); margin-bottom:8px;">Default Format</label>
+        <div class="opts" id="defaultFormatOpts" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+      </div>
+      <div>
+        <label style="display:block; font-family:'JetBrains Mono'; font-size:10px; text-transform:uppercase; letter-spacing:0.14em; color:var(--muted); margin-bottom:8px;">Default Background</label>
+        <div class="opts" id="defaultBgOpts" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+      </div>
+    </div>
+
+    <div style="border:1px solid var(--rule); background:var(--paper); padding:24px; box-shadow:3px 3px 0 var(--rule);">
+      <h3 style="font-family:'JetBrains Mono'; font-size:11px; text-transform:uppercase; letter-spacing:0.14em; color:var(--accent); margin:0 0 16px;">OAuth Client ID</h3>
+      <p id="clientIdDisplay" style="font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--muted); word-break:break-all; margin:0 0 12px;"></p>
+      <button class="btn ghost" id="resetClientId">Reset / Change</button>
+    </div>
+  </div>
+</section>
+```
+
+  </main>
+
+  <footer>
+    <span>LOGOTECA · LIVE-SYNCED · NO ACCOUNT BEYOND YOUR GOOGLE</span>
+    <span id="status">Ready.</span>
+  </footer>
+</div>
+
+<!-- =================== EXPORT MODAL =================== -->
+
+<div id="exportModal" class="modal-backdrop">
+  <div class="modal">
+    <div class="head">
+      <h2>Export</h2>
+      <button id="closeExport">✕</button>
+    </div>
+    <div class="body">
+      <div class="preview" id="exportPreview"><span class="mono" style="color:var(--muted);">—</span></div>
+      <div class="row">
+        <label>Size</label>
+        <div class="opts" id="sizeOpts"></div>
+      </div>
+      <div class="row">
+        <label>Format</label>
+        <div class="opts" id="formatOpts"></div>
+      </div>
+      <div class="row">
+        <label>Background</label>
+        <div class="opts" id="bgOpts"></div>
+      </div>
+      <div class="row" id="customBgRow" style="display:none;">
+        <label>Custom Color</label>
+        <div class="color-input">
+          <input type="color" id="customBgColor" value="#ffffff" />
+          <span id="customBgValue" class="mono" style="font-size:12px;">#ffffff</span>
+        </div>
+      </div>
+      <div class="row" id="customSizeRow" style="display:none;">
+        <label>Custom Size (px)</label>
+        <input type="number" id="customSize" min="16" max="4096" value="1024" style="border:1px solid var(--rule); padding:8px 10px; font-family:'JetBrains Mono'; font-size:12px; background:var(--paper); width:120px;" />
+      </div>
+    </div>
+    <div class="footer">
+      <button class="btn ghost" id="exportCancel">Cancel</button>
+      <button class="btn accent" id="exportDownload">Download</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   LOGOTECA - Live, Drive-synced logo library
+   ========================================================= */
+
+// ---- Config ----
+const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+const FOLDER_NAME = 'Logoteca';
+const META_FILENAME = '_logoteca_index.json';
+
+const SOURCES = [
+  { id: 'logodev',    label: 'Logo.dev',   url: (d) => `https://img.logo.dev/${d}?token=pk_X-1ZO13ESamOoEeKeLUTVA&size=512&format=png` },
+  { id: 'clearbit',   label: 'Clearbit',   url: (d) => `https://logo.clearbit.com/${d}?size=512` },
+  { id: 'google',     label: 'Google',     url: (d) => `https://www.google.com/s2/favicons?domain=${d}&sz=256` },
+  { id: 'duckduckgo', label: 'DuckDuckGo', url: (d) => `https://icons.duckduckgo.com/ip3/${d}.ico` },
+];
+
+const SIZE_PRESETS = [
+  { id: 'orig', label: 'Original' },
+  { id: '128',  label: '128' },
+  { id: '256',  label: '256' },
+  { id: '512',  label: '512' },
+  { id: '1024', label: '1024' },
+  { id: 'custom', label: 'Custom…' },
+];
+const FORMAT_PRESETS = [
+  { id: 'orig', label: 'Original' },
+  { id: 'png',  label: 'PNG' },
+  { id: 'jpg',  label: 'JPG' },
+  { id: 'webp', label: 'WebP' },
+];
+const BG_PRESETS = [
+  { id: 'transparent', label: 'Transparent' },
+  { id: 'white',       label: 'White' },
+  { id: 'black',       label: 'Black' },
+  { id: 'custom',      label: 'Custom…' },
+];
+
+// ---- State ----
+const state = {
+  clientId: localStorage.getItem('logoteca_client_id') || '',
+  driveMode: localStorage.getItem('logoteca_client_id') ? true : false,
+  driveAuthed: false,
+  accessToken: null,
+  driveFolderId: null,
+  lookupResults: [],
+  uploads: [],
+  library: JSON.parse(localStorage.getItem('logoteca_library') || '[]'),
+  selected: new Set(),
+  currentTab: 'lookup',
+  exportTarget: null, // current item being exported (or 'bulk')
+  exportConfig: {
+    size: localStorage.getItem('logoteca_default_size') || 'orig',
+    format: localStorage.getItem('logoteca_default_format') || 'orig',
+    bg: localStorage.getItem('logoteca_default_bg') || 'transparent',
+    customSize: 1024,
+    customBg: '#ffffff',
+  },
+  tokenClient: null,
+};
+
+// ---- Utilities ----
+const $ = (sel, el = document) => el.querySelector(sel);
+const $$ = (sel, el = document) => Array.from(el.querySelectorAll(sel));
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function setStatus(msg) { $('#status').textContent = msg; }
+
+function normalizeDomain(input) {
+  let s = input.trim().toLowerCase();
+  s = s.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '');
+  if (s.includes('.')) return { domain: s, name: prettyName(s) };
+  const cleaned = s.replace(/[^a-z0-9]/g, '');
+  return { domain: `${cleaned}.com`, name: prettyName(s) };
+}
+function prettyName(input) {
+  let s = input.replace(/\.(com|net|org|io|co|ai|inc)$/, '').replace(/^.*\./, '');
+  return s.split(/[\s\-_]+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+function safeFilename(s) { return s.replace(/[^a-z0-9]+/gi, '-').toLowerCase(); }
+
+// ---- Setup screen ----
+function showSetup() {
+  $('#setupScreen').style.display = 'flex';
+  $('#app').style.display = 'none';
+}
+function showApp() {
+  $('#setupScreen').style.display = 'none';
+  $('#app').style.display = 'block';
+  initApp();
+}
+
+$('#saveClientId').onclick = () => {
+  const v = $('#clientIdInput').value.trim();
+  if (!v.endsWith('.apps.googleusercontent.com')) {
+    $('#setupErr').style.display = 'block';
+    $('#setupErr').textContent = "Doesn't look like a valid Google OAuth Client ID. It should end with .apps.googleusercontent.com";
+    return;
+  }
+  localStorage.setItem('logoteca_client_id', v);
+  state.clientId = v;
+  state.driveMode = true;
+  showApp();
+};
+$('#clientIdInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('#saveClientId').click(); });
+
+$('#skipSetup').onclick = () => {
+  state.driveMode = false;
+  showApp();
+};
+
+if (state.clientId) showApp(); else showSetup();
+
+// ---- Image probing ----
+function probeImage(url, { minSize = 32, timeout = 6000 } = {}) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    let done = false;
+    const finish = (ok, dims) => { if (!done) { done = true; resolve(ok ? { ok: true, ...dims } : { ok: false }); } };
+    const t = setTimeout(() => finish(false), timeout);
+    img.onload = () => {
+      clearTimeout(t);
+      const okSize = img.naturalWidth >= minSize && img.naturalHeight >= minSize;
+      finish(okSize, { w: img.naturalWidth, h: img.naturalHeight });
+    };
+    img.onerror = () => { clearTimeout(t); finish(false); };
+    img.src = url;
+  });
+}
+
+async function fetchLogo(input) {
+  const { domain, name } = normalizeDomain(input);
+  const sources = {};
+  let firstOk = null;
+  for (const src of SOURCES) {
+    const url = src.url(domain);
+    sources[src.id] = url;
+    if (!firstOk) {
+      const probe = await probeImage(url, { minSize: src.id === 'duckduckgo' ? 16 : 32 });
+      if (probe.ok) firstOk = src.id;
+    }
+  }
+  return {
+    id: uid(),
+    name,
+    domain,
+    sources,
+    srcId: firstOk || 'logodev',
+    status: firstOk ? 'ok' : 'partial',
+    addedAt: Date.now(),
+  };
+}
+
+// Fetch source as blob (with CORS fallback)
+async function fetchAsBlob(url) {
+  try {
+    const res = await fetch(url, { mode: 'cors' });
+    if (!res.ok) throw new Error('fetch failed');
+    return await res.blob();
+  } catch (err) {
+    // Fallback: load via Image and rasterize via canvas (loses original format/SVG)
+    return await imageToBlob(url, 'image/png');
+  }
+}
+
+function imageToBlob(url, type = 'image/png') {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('blob fail')), type);
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+// ---- On-demand resize / format conversion ----
+async function processImage(srcUrlOrDataUrl, config) {
+  const { size, format, bg, customSize, customBg } = config;
+
+  // Load the image
+  const img = await new Promise((resolve, reject) => {
+    const i = new Image();
+    i.crossOrigin = 'anonymous';
+    i.onload = () => resolve(i);
+    i.onerror = reject;
+    i.src = srcUrlOrDataUrl;
+  });
+
+  // Determine target size
+  let targetW, targetH;
+  if (size === 'orig') {
+    targetW = img.naturalWidth;
+    targetH = img.naturalHeight;
+  } else if (size === 'custom') {
+    const max = Math.max(img.naturalWidth, img.naturalHeight) || 1;
+    const scale = customSize / max;
+    targetW = Math.round(img.naturalWidth * scale);
+    targetH = Math.round(img.naturalHeight * scale);
+  } else {
+    const px = parseInt(size, 10);
+    const max = Math.max(img.naturalWidth, img.naturalHeight) || 1;
+    const scale = px / max;
+    targetW = Math.round(img.naturalWidth * scale);
+    targetH = Math.round(img.naturalHeight * scale);
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = targetW;
+  canvas.height = targetH;
+  const ctx = canvas.getContext('2d');
+
+  // Background
+  if (bg === 'white') { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, targetW, targetH); }
+  else if (bg === 'black') { ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, targetW, targetH); }
+  else if (bg === 'custom') { ctx.fillStyle = customBg; ctx.fillRect(0, 0, targetW, targetH); }
+
+  ctx.drawImage(img, 0, 0, targetW, targetH);
+
+  // Format
+  let mime = 'image/png';
+  let ext = 'png';
+  if (format === 'jpg') { mime = 'image/jpeg'; ext = 'jpg'; }
+  else if (format === 'webp') { mime = 'image/webp'; ext = 'webp'; }
+  else if (format === 'orig' || format === 'png') { mime = 'image/png'; ext = 'png'; }
+
+  // JPG can't be transparent
+  if (mime === 'image/jpeg' && bg === 'transparent') {
+    const tmp = document.createElement('canvas');
+    tmp.width = targetW; tmp.height = targetH;
+    const tctx = tmp.getContext('2d');
+    tctx.fillStyle = '#ffffff'; tctx.fillRect(0,0,targetW,targetH);
+    tctx.drawImage(canvas, 0, 0);
+    return await new Promise((res, rej) => tmp.toBlob(b => b ? res({ blob: b, ext, mime }) : rej(), mime, 0.95));
+  }
+
+  return await new Promise((res, rej) => canvas.toBlob(b => b ? res({ blob: b, ext, mime }) : rej(), mime, 0.95));
+}
+
+// ---- Google Drive integration ----
+let gapiLoaded = false;
+let gisLoaded = false;
+
+window.gapiLoadCheck = () => {
+  if (typeof gapi !== 'undefined') {
+    gapi.load('client', async () => {
+      await gapi.client.init({ discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
+      gapiLoaded = true;
+      maybeReady();
+    });
+  } else {
+    setTimeout(window.gapiLoadCheck, 200);
+  }
+};
+window.gisLoadCheck = () => {
+  if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
+    gisLoaded = true;
+    maybeReady();
+  } else {
+    setTimeout(window.gisLoadCheck, 200);
+  }
+};
+function maybeReady() {
+  if (gapiLoaded && gisLoaded && state.driveMode && state.clientId) {
+    state.tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: state.clientId,
+      scope: SCOPES,
+      callback: async (resp) => {
+        if (resp.error) {
+          toast('Auth failed: ' + resp.error);
+          return;
+        }
+        state.accessToken = resp.access_token;
+        gapi.client.setToken({ access_token: resp.access_token });
+        state.driveAuthed = true;
+        updateAuthUI();
+        await ensureFolder();
+        await loadIndexFromDrive();
+        renderLibrary();
+        toast('Connected to Drive');
+      },
+    });
+  }
+}
+
+async function connectDrive() {
+  if (!state.tokenClient) {
+    toast('Drive client not ready yet…');
+    return;
+  }
+  state.tokenClient.requestAccessToken({ prompt: state.driveAuthed ? '' : 'consent' });
+}
+
+function disconnectDrive() {
+  if (state.accessToken) {
+    google.accounts.oauth2.revoke(state.accessToken, () => {});
+  }
+  state.accessToken = null;
+  state.driveAuthed = false;
+  state.driveFolderId = null;
+  updateAuthUI();
+}
+
+async function ensureFolder() {
+  // Look for existing Logoteca folder
+  const res = await gapi.client.drive.files.list({
+    q: `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+    fields: 'files(id, name)',
+    spaces: 'drive',
+  });
+  if (res.result.files && res.result.files.length > 0) {
+    state.driveFolderId = res.result.files[0].id;
+  } else {
+    const create = await gapi.client.drive.files.create({
+      resource: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' },
+      fields: 'id',
+    });
+    state.driveFolderId = create.result.id;
+    toast('Created Logoteca folder in Drive');
+  }
+  return state.driveFolderId;
+}
+
+// Multipart upload helper
+async function uploadToDrive(blob, filename, mime, folderId, existingFileId = null) {
+  const metadata = {
+    name: filename,
+    mimeType: mime,
+    ...(existingFileId ? {} : { parents: [folderId] }),
+  };
+  const boundary = '-------logoteca' + Date.now();
+  const delim = `\r\n--${boundary}\r\n`;
+  const closeDelim = `\r\n--${boundary}--`;
+
+  const arrayBuffer = await blob.arrayBuffer();
+  const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+  const body =
+    delim +
+    'Content-Type: application/json\r\n\r\n' +
+    JSON.stringify(metadata) +
+    delim +
+    `Content-Type: ${mime}\r\n` +
+    'Content-Transfer-Encoding: base64\r\n\r\n' +
+    base64 +
+    closeDelim;
+
+  const path = existingFileId
+    ? `/upload/drive/v3/files/${existingFileId}?uploadType=multipart`
+    : `/upload/drive/v3/files?uploadType=multipart`;
+  const method = existingFileId ? 'PATCH' : 'POST';
+
+  const res = await gapi.client.request({
+    path,
+    method,
+    params: { uploadType: 'multipart' },
+    headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+    body,
+  });
+  return res.result;
+}
+
+async function findFileInFolder(filename) {
+  const res = await gapi.client.drive.files.list({
+    q: `name='${filename.replace(/'/g, "\\'")}' and '${state.driveFolderId}' in parents and trashed=false`,
+    fields: 'files(id, name)',
+  });
+  return res.result.files && res.result.files[0] ? res.result.files[0].id : null;
+}
+
+async function saveLogoToDrive(item) {
+  if (!state.driveAuthed || !state.driveFolderId) return null;
+  try {
+    let blob, mime, ext;
+    if (item.dataUrl) {
+      const r = await fetch(item.dataUrl);
+      blob = await r.blob();
+      mime = blob.type || 'image/png';
+      ext = mime.split('/')[1] || 'png';
+    } else {
+      const url = item.sources[item.srcId];
+      blob = await fetchAsBlob(url);
+      mime = blob.type || 'image/png';
+      ext = mime.includes('svg') ? 'svg' : mime.includes('jpeg') ? 'jpg' : mime.includes('webp') ? 'webp' : mime.includes('icon') ? 'ico' : 'png';
+    }
+    const filename = `${safeFilename(item.name || item.domain || 'logo')}.${ext}`;
+    const existingId = await findFileInFolder(filename);
+    const result = await uploadToDrive(blob, filename, mime, state.driveFolderId, existingId);
+    item.driveFileId = result.id;
+    item.driveFilename = filename;
+    return result;
+  } catch (err) {
+    console.error('Drive upload failed', err);
+    toast('Drive upload failed');
+    return null;
+  }
+}
+
+async function saveIndexToDrive() {
+  if (!state.driveAuthed || !state.driveFolderId) return;
+  try {
+    const indexData = {
+      version: 1,
+      updatedAt: Date.now(),
+      items: state.library.map(({ id, name, domain, sources, srcId, addedAt, driveFileId, driveFilename, dataUrl }) => ({
+        id, name, domain, sources, srcId, addedAt, driveFileId, driveFilename,
+        // omit dataUrl from index — uploads are stored as separate files
+      })),
+    };
+    const blob = new Blob([JSON.stringify(indexData, null, 2)], { type: 'application/json' });
+    const existingId = await findFileInFolder(META_FILENAME);
+    await uploadToDrive(blob, META_FILENAME, 'application/json', state.driveFolderId, existingId);
+  } catch (err) {
+    console.error('Index save failed', err);
+  }
+}
+
+async function loadIndexFromDrive() {
+  if (!state.driveAuthed || !state.driveFolderId) return;
+  try {
+    const id = await findFileInFolder(META_FILENAME);
+    if (!id) return;
+    const res = await gapi.client.drive.files.get({ fileId: id, alt: 'media' });
+    const data = typeof res.body === 'string' ? JSON.parse(res.body) : res.result;
+    if (data && data.items) {
+      // Merge: prefer Drive's index if present
+      state.library = data.items;
+      saveLibraryLocal();
+      toast(`Loaded ${data.items.length} from Drive`);
+    }
+  } catch (err) {
+    console.error('Index load failed', err);
+  }
+}
+
+function updateAuthUI() {
+  const pill = $('#authPill');
+  const label = $('#authLabel');
+  if (state.driveAuthed) {
+    pill.classList.add('connected');
+    label.textContent = 'Drive Connected';
+  } else {
+    pill.classList.remove('connected');
+    label.textContent = state.driveMode ? 'Connect Google Drive' : 'Local-only mode';
+  }
+  // Settings tab
+  if (state.driveMode) {
+    $('#driveStatus').textContent = state.driveAuthed
+      ? `Connected. Folder: "${FOLDER_NAME}" — files saved here.`
+      : 'Not connected. Click "Reconnect" to authorize.';
+  } else {
+    $('#driveStatus').textContent = 'Local-only mode (no Drive sync). Set up OAuth to enable syncing.';
+  }
+  $('#clientIdDisplay').textContent = state.clientId || '(none — local-only mode)';
+}
+
+// ---- Local persistence ----
+function saveLibraryLocal() {
+  const slim = state.library.map(({ id, name, domain, sources, srcId, dataUrl, addedAt, driveFileId, driveFilename }) => ({
+    id, name, domain, sources, srcId, dataUrl, addedAt, driveFileId, driveFilename,
+  }));
+  localStorage.setItem('logoteca_library', JSON.stringify(slim));
+  $('#libraryCount').textContent = state.library.length;
+}
+
+async function syncToDrive(item) {
+  if (!state.driveAuthed) return;
+  setStatus(`Syncing ${item.name} to Drive…`);
+  await saveLogoToDrive(item);
+  await saveIndexToDrive();
+  setStatus('Synced.');
+}
+
+// ---- Rendering ----
+function renderCard(item, opts = {}) {
+  const { inLibrary = false, inUpload = false } = opts;
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.id = item.id;
+  if (state.selected.has(item.id)) card.classList.add('selected');
+
+  const sb = document.createElement('div');
+  sb.className = 'selectbox';
+  sb.textContent = state.selected.has(item.id) ? '✓' : '';
+  sb.onclick = (e) => {
+    e.stopPropagation();
+    if (state.selected.has(item.id)) state.selected.delete(item.id);
+    else state.selected.add(item.id);
+    updateToolbar();
+    rerenderCurrentTab();
+  };
+  card.appendChild(sb);
+
+  const canvas = document.createElement('div');
+  canvas.className = 'canvas';
+  if (inUpload || item.dataUrl) {
+    const img = document.createElement('img');
+    img.src = item.dataUrl;
+    img.alt = item.name;
+    canvas.appendChild(img);
+  } else {
+    const url = item.sources[item.srcId];
+    const img = document.createElement('img');
+    img.alt = item.name;
+    img.crossOrigin = 'anonymous';
+    img.onerror = () => { canvas.innerHTML = '<span class="failed">Source failed — try another</span>'; };
+    img.src = url;
+    canvas.appendChild(img);
+  }
+  card.appendChild(canvas);
+
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  const nameEl = document.createElement('div');
+  nameEl.className = 'name';
+  nameEl.contentEditable = (inLibrary || inUpload) ? 'true' : 'false';
+  nameEl.textContent = item.name;
+  nameEl.onblur = async () => {
+    const newName = nameEl.textContent.trim();
+    if (newName && newName !== item.name) {
+      item.name = newName;
+      if (inLibrary) {
+        saveLibraryLocal();
+        if (state.driveAuthed) {
+          await syncToDrive(item);
+        }
+      }
+    }
+  };
+  meta.appendChild(nameEl);
+
+  const dom = document.createElement('div');
+  dom.className = 'domain';
+  dom.textContent = item.domain || '— uploaded —';
+  meta.appendChild(dom);
+
+  if (item.sources) {
+    const src = document.createElement('div');
+    src.className = 'source';
+    src.textContent = `Via: ${SOURCES.find(s => s.id === item.srcId)?.label || item.srcId}`;
+    meta.appendChild(src);
+
+    const picker = document.createElement('div');
+    picker.className = 'src-picker';
+    SOURCES.forEach(s => {
+      const b = document.createElement('button');
+      b.textContent = s.label;
+      if (s.id === item.srcId) b.classList.add('active');
+      b.onclick = async (e) => {
+        e.stopPropagation();
+        item.srcId = s.id;
+        if (inLibrary) {
+          saveLibraryLocal();
+          if (state.driveAuthed) await syncToDrive(item);
+        }
+        rerenderCurrentTab();
+      };
+      picker.appendChild(b);
+    });
+    meta.appendChild(picker);
+  }
+
+  if (item.driveFileId) {
+    const dt = document.createElement('div');
+    dt.className = 'drive-tag';
+    dt.textContent = '✓ On Drive';
+    meta.appendChild(dt);
+  }
+
+  card.appendChild(meta);
+
+  const actions = document.createElement('div');
+  actions.className = 'actions';
+
+  const exportBtn = document.createElement('button');
+  exportBtn.textContent = 'Export';
+  exportBtn.onclick = (e) => { e.stopPropagation(); openExportModal(item); };
+  actions.appendChild(exportBtn);
+
+  const dlBtn = document.createElement('button');
+  dlBtn.textContent = 'Quick DL';
+  dlBtn.onclick = async (e) => {
+    e.stopPropagation();
+    await quickDownload(item);
+  };
+  actions.appendChild(dlBtn);
+
+  const saveBtn = document.createElement('button');
+  const isInLib = state.library.some(l => l.id === item.id || (l.domain && item.domain && l.domain === item.domain));
+  if (inLibrary) {
+    saveBtn.textContent = 'Remove';
+    saveBtn.onclick = async (e) => {
+      e.stopPropagation();
+      state.library = state.library.filter(l => l.id !== item.id);
+      saveLibraryLocal();
+      if (state.driveAuthed) await saveIndexToDrive();
+      renderLibrary();
+      toast('Removed (file kept on Drive)');
+    };
+  } else {
+    saveBtn.textContent = isInLib ? 'Saved' : 'Save';
+    if (isInLib) saveBtn.classList.add('saved');
+    saveBtn.onclick = async (e) => {
+      e.stopPropagation();
+      if (isInLib) return;
+      const copy = { ...item };
+      state.library.push(copy);
+      saveLibraryLocal();
+      toast(`Saved ${copy.name}`);
+      if (state.driveAuthed) {
+        await syncToDrive(copy);
+        saveLibraryLocal();
+        rerenderCurrentTab();
+      } else {
+        rerenderCurrentTab();
+      }
+    };
+  }
+  actions.appendChild(saveBtn);
+
+  card.appendChild(actions);
+  return card;
+}
+
+function rerenderCurrentTab() {
+  if (state.currentTab === 'lookup') renderLookup();
+  else if (state.currentTab === 'library') renderLibrary();
+  else if (state.currentTab === 'upload') renderUpload();
+  else if (state.currentTab === 'bulk') renderBulk();
+}
+
+function renderLookup() {
+  const grid = $('#lookupGrid');
+  const empty = $('#lookupEmpty');
+  grid.innerHTML = '';
+  if (state.lookupResults.length === 0) {
+    empty.style.display = 'block';
+  } else {
+    empty.style.display = 'none';
+    state.lookupResults.forEach(item => grid.appendChild(renderCard(item)));
+  }
+  $('#resultCount').textContent = state.lookupResults.length;
+}
+function renderLibrary() {
+  const grid = $('#libraryGrid');
+  const empty = $('#libraryEmpty');
+  grid.innerHTML = '';
+  if (state.library.length === 0) empty.style.display = 'block';
+  else { empty.style.display = 'none'; state.library.forEach(item => grid.appendChild(renderCard(item, { inLibrary: true }))); }
+  $('#libraryCount').textContent = state.library.length;
+}
+function renderUpload() {
+  const grid = $('#uploadGrid');
+  grid.innerHTML = '';
+  state.uploads.forEach(item => grid.appendChild(renderCard(item, { inUpload: true })));
+}
+function renderBulk() {
+  const grid = $('#bulkGrid');
+  grid.innerHTML = '';
+  state.lookupResults.forEach(item => grid.appendChild(renderCard(item)));
+}
+
+// ---- Quick download (uses default settings) ----
+async function quickDownload(item) {
+  const cfg = {
+    size: state.exportConfig.size,
+    format: state.exportConfig.format,
+    bg: state.exportConfig.bg,
+    customSize: state.exportConfig.customSize,
+    customBg: state.exportConfig.customBg,
+  };
+  await doExportDownload(item, cfg);
+}
+
+async function doExportDownload(item, cfg) {
+  try {
+    const url = item.dataUrl || item.sources?.[item.srcId];
+    if (!url) return;
+
+    // Pure original-format passthrough (no resize, no bg, no format change)
+    if (cfg.size === 'orig' && cfg.format === 'orig' && cfg.bg === 'transparent') {
+      let blob;
+      if (url.startsWith('data:')) {
+        const res = await fetch(url); blob = await res.blob();
+      } else {
+        blob = await fetchAsBlob(url);
+      }
+      const ext = blob.type.includes('svg') ? 'svg' : blob.type.includes('jpeg') ? 'jpg' : blob.type.includes('webp') ? 'webp' : 'png';
+      downloadBlob(blob, `${safeFilename(item.name)}.${ext}`);
+      return;
+    }
+
+    const { blob, ext } = await processImage(url, cfg);
+    const sizeTag = cfg.size === 'orig' ? '' : `-${cfg.size === 'custom' ? cfg.customSize : cfg.size}`;
+    downloadBlob(blob, `${safeFilename(item.name)}${sizeTag}.${ext}`);
+  } catch (err) {
+    console.error(err);
+    toast('Export failed');
+  }
+}
+
+function downloadBlob(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+// ---- Export modal ----
+function openExportModal(itemOrBulk) {
+  state.exportTarget = itemOrBulk;
+  buildExportModalControls();
+  refreshExportPreview();
+  $('#exportModal').classList.add('show');
+}
+function closeExportModal() {
+  $('#exportModal').classList.remove('show');
+  state.exportTarget = null;
+}
+$('#closeExport').onclick = closeExportModal;
+$('#exportCancel').onclick = closeExportModal;
+
+function buildExportModalControls() {
+  // Sizes
+  const sizeOpts = $('#sizeOpts');
+  sizeOpts.innerHTML = '';
+  SIZE_PRESETS.forEach(p => {
+    const b = document.createElement('button');
+    b.textContent = p.label;
+    if (state.exportConfig.size === p.id) b.classList.add('active');
+    b.onclick = () => {
+      state.exportConfig.size = p.id;
+      $('#customSizeRow').style.display = p.id === 'custom' ? 'block' : 'none';
+      buildExportModalControls();
+      refreshExportPreview();
+    };
+    sizeOpts.appendChild(b);
+  });
+  $('#customSizeRow').style.display = state.exportConfig.size === 'custom' ? 'block' : 'none';
+  $('#customSize').value = state.exportConfig.customSize;
+  $('#customSize').onchange = (e) => {
+    state.exportConfig.customSize = parseInt(e.target.value, 10) || 1024;
+    refreshExportPreview();
+  };
+
+  // Formats
+  const formatOpts = $('#formatOpts');
+  formatOpts.innerHTML = '';
+  FORMAT_PRESETS.forEach(p => {
+    const b = document.createElement('button');
+    b.textContent = p.label;
+    if (state.exportConfig.format === p.id) b.classList.add('active');
+    b.onclick = () => {
+      state.exportConfig.format = p.id;
+      buildExportModalControls();
+      refreshExportPreview();
+    };
+    formatOpts.appendChild(b);
+  });
+
+  // Backgrounds
+  const bgOpts = $('#bgOpts');
+  bgOpts.innerHTML = '';
+  BG_PRESETS.forEach(p => {
+    const b = document.createElement('button');
+    b.textContent = p.label;
+    if (state.exportConfig.bg === p.id) b.classList.add('active');
+    b.onclick = () => {
+      state.exportConfig.bg = p.id;
+      $('#customBgRow').style.display = p.id === 'custom' ? 'block' : 'none';
+      buildExportModalControls();
+      refreshExportPreview();
+    };
+    bgOpts.appendChild(b);
+  });
+  $('#customBgRow').style.display = state.exportConfig.bg === 'custom' ? 'block' : 'none';
+  $('#customBgColor').value = state.exportConfig.customBg;
+  $('#customBgValue').textContent = state.exportConfig.customBg;
+  $('#customBgColor').oninput = (e) => {
+    state.exportConfig.customBg = e.target.value;
+    $('#customBgValue').textContent = e.target.value;
+    refreshExportPreview();
+  };
+}
+
+async function refreshExportPreview() {
+  const target = state.exportTarget;
+  if (!target) return;
+  const preview = $('#exportPreview');
+  preview.innerHTML = '<span class="mono" style="color:var(--muted);">Rendering…</span>';
+
+  // For bulk, just show the first item as a representative preview
+  const sample = (target === 'bulk') ? getSelectedItems()[0] : target;
+  if (!sample) { preview.innerHTML = '<span class="mono" style="color:var(--muted);">No preview</span>'; return; }
+
+  try {
+    const url = sample.dataUrl || sample.sources?.[sample.srcId];
+    const cfg = state.exportConfig;
+    if (cfg.size === 'orig' && cfg.format === 'orig' && cfg.bg === 'transparent') {
+      preview.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = url;
+      preview.appendChild(img);
+    } else {
+      const { blob } = await processImage(url, cfg);
+      const previewUrl = URL.createObjectURL(blob);
+      preview.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = previewUrl;
+      preview.appendChild(img);
+    }
+  } catch (err) {
+    preview.innerHTML = '<span class="mono" style="color:var(--accent);">Preview failed</span>';
+  }
+}
+
+$('#exportDownload').onclick = async () => {
+  const target = state.exportTarget;
+  const cfg = { ...state.exportConfig };
+  if (target === 'bulk') {
+    const items = getSelectedItems();
+    for (const item of items) {
+      await doExportDownload(item, cfg);
+      await new Promise(r => setTimeout(r, 150));
+    }
+    toast(`Exported ${items.length}`);
+  } else {
+    await doExportDownload(target, cfg);
+    toast('Downloaded');
+  }
+  closeExportModal();
+};
+
+// ---- Bulk actions ----
+function getSelectedItems() {
+  const all = [ ...state.lookupResults, ...state.library, ...state.uploads ];
+  return all.filter(i => state.selected.has(i.id));
+}
+function updateToolbar() {
+  const tb = $('#toolbar');
+  if (state.selected.size > 0) {
+    tb.style.display = 'flex';
+    $('#toolbarLabel').textContent = `${state.selected.size} selected`;
+  } else {
+    tb.style.display = 'none';
+  }
+}
+$('#bulkSave').onclick = async () => {
+  const items = getSelectedItems();
+  let added = 0;
+  for (const item of items) {
+    if (!state.library.some(l => l.id === item.id)) {
+      const copy = { ...item };
+      state.library.push(copy);
+      added++;
+      if (state.driveAuthed) await saveLogoToDrive(copy);
+    }
+  }
+  saveLibraryLocal();
+  if (state.driveAuthed) await saveIndexToDrive();
+  toast(`Saved ${added} to library`);
+  rerenderCurrentTab();
+};
+$('#bulkExport').onclick = () => openExportModal('bulk');
+$('#bulkExportSheet').onclick = () => {
+  const items = getSelectedItems().length > 0 ? getSelectedItems() :
+                state.currentTab === 'library' ? state.library : state.lookupResults;
+  if (items.length === 0) { toast('Nothing to export'); return; }
+  const headers = ['Name', 'Domain', 'Source', 'URL', 'On Drive'];
+  const rows = items.map(i => [
+    i.name, i.domain || '',
+    i.dataUrl ? 'Upload' : (SOURCES.find(s => s.id === i.srcId)?.label || ''),
+    i.dataUrl ? '(local upload)' : (i.sources?.[i.srcId] || ''),
+    i.driveFileId ? 'Yes' : 'No',
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  downloadBlob(blob, `logoteca-${Date.now()}.csv`);
+  toast('CSV exported');
+};
+$('#bulkDeselect').onclick = () => { state.selected.clear(); updateToolbar(); rerenderCurrentTab(); };
+
+// ---- Search ----
+async function doSearch(query, autoSave = true) {
+  if (!query) return;
+  setStatus(`Sourcing ${query}…`);
+  const placeholderId = uid();
+  const placeholder = {
+    id: placeholderId,
+    name: prettyName(query),
+    domain: normalizeDomain(query).domain,
+    sources: { logodev: '' },
+    srcId: 'logodev',
+    status: 'loading',
+  };
+  state.lookupResults.unshift(placeholder);
+  renderLookup();
+
+  const result = await fetchLogo(query);
+  const idx = state.lookupResults.findIndex(i => i.id === placeholderId);
+  if (idx !== -1) state.lookupResults[idx] = result;
+  renderLookup();
+
+  // Auto-save to library + Drive if authed
+  if (autoSave) {
+    const exists = state.library.some(l => l.domain === result.domain);
+    if (!exists) {
+      const copy = { ...result, id: uid() };
+      state.library.push(copy);
+      saveLibraryLocal();
+      if (state.driveAuthed) {
+        setStatus(`Saving ${copy.name} to Drive…`);
+        await saveLogoToDrive(copy);
+        await saveIndexToDrive();
+        saveLibraryLocal();
+        rerenderCurrentTab();
+      }
+    }
+  }
+  setStatus(state.driveAuthed ? 'Synced.' : 'Done.');
+}
+
+$('#searchBtn').onclick = () => {
+  const q = $('#searchInput').value.trim();
+  if (q) { doSearch(q); $('#searchInput').value = ''; }
+};
+$('#searchInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#searchBtn').click(); });
+$('#clearBtn').onclick = () => { state.lookupResults = []; state.selected.clear(); updateToolbar(); renderLookup(); };
+
+$$('.empty .examples button').forEach(b => {
+  b.onclick = () => { $('#searchInput').value = b.dataset.q; $('#searchBtn').click(); };
+});
+
+// ---- Tabs ----
+$$('.tab').forEach(t => {
+  t.onclick = () => {
+    $$('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    $$('.tab-panel').forEach(p => p.style.display = 'none');
+    const tab = t.dataset.tab;
+    state.currentTab = tab;
+    state.selected.clear();
+    updateToolbar();
+    if (tab === 'lookup') { $('#tab-lookup').style.display = 'block'; renderLookup(); }
+    else if (tab === 'library') { $('#tab-library').style.display = 'block'; renderLibrary(); }
+    else if (tab === 'upload') { $('#tab-upload').style.display = 'block'; renderUpload(); }
+    else if (tab === 'bulk') { $('#tab-bulk').style.display = 'block'; renderBulk(); }
+    else if (tab === 'settings') { $('#tab-settings').style.display = 'block'; renderSettings(); }
+  };
+});
+
+// ---- Upload ----
+function handleFiles(files) {
+  Array.from(files).forEach(file => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const item = {
+        id: uid(),
+        name: file.name.replace(/\.[^.]+$/, ''),
+        domain: '',
+        dataUrl: e.target.result,
+        srcId: 'upload',
+        addedAt: Date.now(),
+      };
+      state.uploads.unshift(item);
+      state.library.push({ ...item });
+      saveLibraryLocal();
+      renderUpload();
+      toast(`Uploaded ${item.name}`);
+      if (state.driveAuthed) {
+        await syncToDrive(state.library[state.library.length - 1]);
+        saveLibraryLocal();
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+$('#uploadInput').addEventListener('change', (e) => handleFiles(e.target.files));
+const upzone = $('#upzone');
+['dragenter', 'dragover'].forEach(ev => {
+  upzone.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); upzone.classList.add('drag'); });
+});
+['dragleave', 'drop'].forEach(ev => {
+  upzone.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); upzone.classList.remove('drag'); });
+});
+upzone.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
+
+// ---- Bulk fetch ----
+$('#bulkFetch').onclick = async () => {
+  const text = $('#bulkInput').value.trim();
+  if (!text) return;
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  setStatus(`Bulk-sourcing ${lines.length}…`);
+  state.lookupResults = [];
+  const placeholders = lines.map(line => ({
+    id: uid(),
+    name: prettyName(line),
+    domain: normalizeDomain(line).domain,
+    sources: {},
+    srcId: 'logodev',
+    status: 'loading',
+  }));
+  state.lookupResults = placeholders;
+  renderBulk();
+
+  const batchSize = 6;
+  for (let i = 0; i < lines.length; i += batchSize) {
+    const batch = lines.slice(i, i + batchSize);
+    const batchResults = await Promise.all(batch.map(l => fetchLogo(l)));
+    batchResults.forEach((r, j) => {
+      r.id = placeholders[i + j].id;
+      state.lookupResults[i + j] = r;
+    });
+    renderBulk();
+    setStatus(`Bulk-sourcing ${Math.min(i + batchSize, lines.length)}/${lines.length}…`);
+  }
+
+  // Save all to library + Drive
+  for (const r of state.lookupResults) {
+    if (!state.library.some(l => l.domain === r.domain)) {
+      const copy = { ...r, id: uid() };
+      state.library.push(copy);
+      if (state.driveAuthed) {
+        setStatus(`Saving ${copy.name}…`);
+        await saveLogoToDrive(copy);
+      }
+    }
+  }
+  saveLibraryLocal();
+  if (state.driveAuthed) await saveIndexToDrive();
+  setStatus(`Bulk done. ${state.lookupResults.length} sourced & saved.`);
+};
+$('#bulkSample').onclick = () => {
+  $('#bulkInput').value = ['shell.com','exxonmobil.com','bp.com','totalenergies.com','chevron.com','equinor.com','eni.com','petronas.com','aramco.com','conocophillips.com'].join('\n');
+};
+
+// ---- Auth pill ----
+$('#authPill').onclick = () => {
+  if (!state.driveMode) { showSetup(); return; }
+  if (state.driveAuthed) {
+    if (confirm('Disconnect from Google Drive?')) disconnectDrive();
+  } else {
+    connectDrive();
+  }
+};
+
+// ---- Settings ----
+function renderSettings() {
+  updateAuthUI();
+  // Default size
+  const sz = $('#defaultSizeOpts');
+  sz.innerHTML = '';
+  SIZE_PRESETS.filter(p => p.id !== 'custom').forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'btn ghost';
+    b.style.cssText = 'padding:6px 12px; font-size:10px;';
+    b.textContent = p.label;
+    if (state.exportConfig.size === p.id) { b.style.background = 'var(--ink)'; b.style.color = 'var(--paper)'; }
+    b.onclick = () => {
+      state.exportConfig.size = p.id;
+      localStorage.setItem('logoteca_default_size', p.id);
+      renderSettings();
+    };
+    sz.appendChild(b);
+  });
+  // Default format
+  const fm = $('#defaultFormatOpts');
+  fm.innerHTML = '';
+  FORMAT_PRESETS.forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'btn ghost';
+    b.style.cssText = 'padding:6px 12px; font-size:10px;';
+    b.textContent = p.label;
+    if (state.exportConfig.format === p.id) { b.style.background = 'var(--ink)'; b.style.color = 'var(--paper)'; }
+    b.onclick = () => {
+      state.exportConfig.format = p.id;
+      localStorage.setItem('logoteca_default_format', p.id);
+      renderSettings();
+    };
+    fm.appendChild(b);
+  });
+  // Default bg
+  const bg = $('#defaultBgOpts');
+  bg.innerHTML = '';
+  BG_PRESETS.filter(p => p.id !== 'custom').forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'btn ghost';
+    b.style.cssText = 'padding:6px 12px; font-size:10px;';
+    b.textContent = p.label;
+    if (state.exportConfig.bg === p.id) { b.style.background = 'var(--ink)'; b.style.color = 'var(--paper)'; }
+    b.onclick = () => {
+      state.exportConfig.bg = p.id;
+      localStorage.setItem('logoteca_default_bg', p.id);
+      renderSettings();
+    };
+    bg.appendChild(b);
+  });
+}
+$('#reconnectDrive').onclick = () => connectDrive();
+$('#openDriveFolder').onclick = () => {
+  if (state.driveFolderId) window.open(`https://drive.google.com/drive/folders/${state.driveFolderId}`, '_blank');
+  else toast('Connect to Drive first');
+};
+$('#resyncDrive').onclick = async () => {
+  if (!state.driveAuthed) { toast('Connect first'); return; }
+  await loadIndexFromDrive();
+  rerenderCurrentTab();
+};
+$('#resetClientId').onclick = () => {
+  if (confirm('Reset OAuth Client ID? You\'ll need to enter it again.')) {
+    localStorage.removeItem('logoteca_client_id');
+    location.reload();
+  }
+};
+
+// ---- Init ----
+function initApp() {
+  updateAuthUI();
+  renderLookup();
+  $('#libraryCount').textContent = state.library.length;
+  setStatus(state.library.length > 0 ? `Library: ${state.library.length}.` : 'Ready.');
+  if (state.driveMode && state.clientId) {
+    window.gapiLoadCheck();
+    window.gisLoadCheck();
+  }
+}
+</script>
+
+</body>
+</html>
