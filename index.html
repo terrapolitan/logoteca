@@ -912,14 +912,20 @@
 
 // Global error trap — surface errors in footer instead of silently breaking
 window.addEventListener('error', (e) => {
+  // Ignore image-load events (these are normal probe failures, not real errors)
+  if (e.target && (e.target.tagName === 'IMG' || e.target.tagName === 'SCRIPT')) return;
   const s = document.getElementById('status');
   if (s) s.textContent = 'JS Error: ' + (e.message || 'unknown') + ' (line ' + e.lineno + ')';
   console.error('Caught error:', e.error || e.message);
-});
+}, true);
 window.addEventListener('unhandledrejection', (e) => {
+  const reason = e.reason;
+  // Don't surface event-like rejections (these aren't real errors)
+  if (reason && reason.isTrusted !== undefined && !reason.message) return;
   const s = document.getElementById('status');
-  if (s) s.textContent = 'Promise error: ' + (e.reason?.message || e.reason || 'unknown');
-  console.error('Unhandled rejection:', e.reason);
+  const msg = reason?.message || (typeof reason === 'string' ? reason : 'unknown');
+  if (s) s.textContent = 'Promise error: ' + msg;
+  console.error('Unhandled rejection:', reason);
 });
 
 // ---- Config ----
@@ -1038,10 +1044,13 @@ $('#skipSetup').onclick = () => {
 if (state.clientId) showApp(); else showSetup();
 
 // ---- Image probing ----
-function probeImage(url, { minSize = 32, timeout = 6000 } = {}) {
+// Probe an image URL — check if it loads and is non-trivial size
+// Note: NO crossOrigin attribute here — we just want to know if the image displays.
+// CORS only matters when we need to put it on a canvas. iPad Chrome often blocks
+// CORS-tainted loads even when the image would display fine.
+function probeImage(url, { minSize = 32, timeout = 8000 } = {}) {
   return new Promise((resolve) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
     let done = false;
     const finish = (ok, dims) => { if (!done) { done = true; resolve(ok ? { ok: true, ...dims } : { ok: false }); } };
     const t = setTimeout(() => finish(false), timeout);
@@ -1072,22 +1081,57 @@ async function fetchLogo(input) {
     name,
     domain,
     sources,
+    // If no source succeeded the probe, default to logodev anyway — it might still display
+    // correctly even if the probe failed (e.g. due to network race conditions on mobile)
     srcId: firstOk || 'logodev',
     status: firstOk ? 'ok' : 'partial',
     addedAt: Date.now(),
   };
 }
 
-// Fetch source as blob (with CORS fallback)
+// CORS proxies in fallback order. corsproxy.io is free and well-maintained.
+const CORS_PROXIES = [
+  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+];
+
+// Fetch source as blob — tries direct, then proxies, then canvas rasterization
 async function fetchAsBlob(url) {
+  // 1. Try direct fetch (works on desktop, often fails on iPad)
   try {
     const res = await fetch(url, { mode: 'cors' });
-    if (!res.ok) throw new Error('fetch failed');
-    return await res.blob();
+    if (res.ok) {
+      const blob = await res.blob();
+      if (blob.size > 0) return blob;
+    }
   } catch (err) {
-    // Fallback: load via Image and rasterize via canvas (loses original format/SVG)
-    return await imageToBlob(url, 'image/png');
+    // continue to fallbacks
   }
+
+  // 2. Try CORS proxies
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const res = await fetch(proxy(url));
+      if (res.ok) {
+        const blob = await res.blob();
+        if (blob.size > 0) return blob;
+      }
+    } catch (err) {
+      // continue
+    }
+  }
+
+  // 3. Last resort: load via <img> (no CORS) then rasterize via canvas through proxy
+  // Note: this only works for proxied URLs because canvas needs CORS-clean images
+  for (const proxy of CORS_PROXIES) {
+    try {
+      return await imageToBlob(proxy(url), 'image/png');
+    } catch (err) {
+      // continue
+    }
+  }
+
+  throw new Error('All fetch methods failed for ' + url);
 }
 
 function imageToBlob(url, type = 'image/png') {
@@ -1102,7 +1146,7 @@ function imageToBlob(url, type = 'image/png') {
       ctx.drawImage(img, 0, 0);
       canvas.toBlob(b => b ? resolve(b) : reject(new Error('blob fail')), type);
     };
-    img.onerror = reject;
+    img.onerror = () => reject(new Error('Image load failed: ' + url.slice(0, 80)));
     img.src = url;
   });
 }
@@ -1111,14 +1155,35 @@ function imageToBlob(url, type = 'image/png') {
 async function processImage(srcUrlOrDataUrl, config) {
   const { size, format, bg, customSize, customBg } = config;
 
-  // Load the image
-  const img = await new Promise((resolve, reject) => {
+  // Try to load the image with CORS first. If it fails, try via proxies.
+  // We need CORS-clean images for canvas pixel access.
+  const loadImg = (url, useCors = true) => new Promise((resolve, reject) => {
     const i = new Image();
-    i.crossOrigin = 'anonymous';
+    if (useCors) i.crossOrigin = 'anonymous';
     i.onload = () => resolve(i);
-    i.onerror = reject;
-    i.src = srcUrlOrDataUrl;
+    i.onerror = () => reject(new Error('load failed'));
+    i.src = url;
   });
+
+  let img;
+  if (srcUrlOrDataUrl.startsWith('data:')) {
+    img = await loadImg(srcUrlOrDataUrl, false);
+  } else {
+    // Try direct with CORS
+    try {
+      img = await loadImg(srcUrlOrDataUrl, true);
+    } catch (e1) {
+      // Try via proxies (which set proper CORS headers)
+      let lastErr = e1;
+      for (const proxy of CORS_PROXIES) {
+        try {
+          img = await loadImg(proxy(srcUrlOrDataUrl), true);
+          break;
+        } catch (e) { lastErr = e; }
+      }
+      if (!img) throw lastErr;
+    }
+  }
 
   // Determine target size
   let targetW, targetH;
@@ -1404,7 +1469,11 @@ async function saveLogoToDrive(item) {
     return result;
   } catch (err) {
     console.error('Drive upload failed', err);
-    const msg = err?.result?.error?.message || err?.message || err?.body || JSON.stringify(err).slice(0, 100);
+    let msg = 'unknown';
+    if (err?.result?.error?.message) msg = err.result.error.message;
+    else if (err?.message) msg = err.message;
+    else if (typeof err === 'string') msg = err;
+    else if (err?.body) msg = err.body;
     toast('Upload failed: ' + msg);
     setStatus('Upload error: ' + msg);
     return null;
@@ -1517,7 +1586,8 @@ function renderCard(item, opts = {}) {
     const url = item.sources[item.srcId];
     const img = document.createElement('img');
     img.alt = item.name;
-    img.crossOrigin = 'anonymous';
+    // No crossOrigin here — we just want to DISPLAY the image. CORS only matters
+    // when we need pixel access (canvas), which we don't for display.
     img.onerror = () => { canvas.innerHTML = '<span class="failed">Source failed — try another</span>'; };
     img.src = url;
     canvas.appendChild(img);
