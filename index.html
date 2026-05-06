@@ -1319,43 +1319,57 @@ async function ensureFolder() {
   return state.driveFolderId;
 }
 
-// Multipart upload helper
+// Multipart upload helper — uses fetch directly (more reliable on iPad than gapi.client.request)
 async function uploadToDrive(blob, filename, mime, folderId, existingFileId = null) {
   const metadata = {
     name: filename,
     mimeType: mime,
     ...(existingFileId ? {} : { parents: [folderId] }),
   };
-  const boundary = '-------logoteca' + Date.now();
+  const boundary = '-------logoteca' + Date.now() + Math.random().toString(36).slice(2, 8);
   const delim = `\r\n--${boundary}\r\n`;
   const closeDelim = `\r\n--${boundary}--`;
 
-  const arrayBuffer = await blob.arrayBuffer();
-  const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+  // Build the multipart body as a Blob to avoid base64 encoding issues on iPad
+  const metaPart = new Blob([
+    delim,
+    'Content-Type: application/json; charset=UTF-8\r\n\r\n',
+    JSON.stringify(metadata),
+  ], { type: 'text/plain' });
 
-  const body =
-    delim +
-    'Content-Type: application/json\r\n\r\n' +
-    JSON.stringify(metadata) +
-    delim +
-    `Content-Type: ${mime}\r\n` +
-    'Content-Transfer-Encoding: base64\r\n\r\n' +
-    base64 +
-    closeDelim;
+  const filePart = new Blob([
+    delim,
+    `Content-Type: ${mime}\r\n\r\n`,
+    blob,
+    closeDelim,
+  ], { type: 'application/octet-stream' });
 
-  const path = existingFileId
-    ? `/upload/drive/v3/files/${existingFileId}?uploadType=multipart`
-    : `/upload/drive/v3/files?uploadType=multipart`;
+  const body = new Blob([metaPart, filePart], { type: `multipart/related; boundary=${boundary}` });
+
+  const url = existingFileId
+    ? `https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=multipart`
+    : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`;
   const method = existingFileId ? 'PATCH' : 'POST';
 
-  const res = await gapi.client.request({
-    path,
+  const res = await fetch(url, {
     method,
-    params: { uploadType: 'multipart' },
-    headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+    headers: {
+      'Authorization': `Bearer ${state.accessToken}`,
+      'Content-Type': `multipart/related; boundary=${boundary}`,
+    },
     body,
   });
-  return res.result;
+
+  if (!res.ok) {
+    let errMsg = `HTTP ${res.status}`;
+    try {
+      const errJson = await res.json();
+      errMsg = errJson.error?.message || errMsg;
+    } catch (e) {}
+    throw new Error(errMsg);
+  }
+
+  return await res.json();
 }
 
 async function findFileInFolder(filename) {
@@ -1382,6 +1396,7 @@ async function saveLogoToDrive(item) {
       ext = mime.includes('svg') ? 'svg' : mime.includes('jpeg') ? 'jpg' : mime.includes('webp') ? 'webp' : mime.includes('icon') ? 'ico' : 'png';
     }
     const filename = `${safeFilename(item.name || item.domain || 'logo')}.${ext}`;
+    setStatus(`Uploading ${filename} (${Math.round(blob.size/1024)}KB)…`);
     const existingId = await findFileInFolder(filename);
     const result = await uploadToDrive(blob, filename, mime, state.driveFolderId, existingId);
     item.driveFileId = result.id;
@@ -1389,7 +1404,9 @@ async function saveLogoToDrive(item) {
     return result;
   } catch (err) {
     console.error('Drive upload failed', err);
-    toast('Drive upload failed');
+    const msg = err?.result?.error?.message || err?.message || err?.body || JSON.stringify(err).slice(0, 100);
+    toast('Upload failed: ' + msg);
+    setStatus('Upload error: ' + msg);
     return null;
   }
 }
